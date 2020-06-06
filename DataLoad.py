@@ -10,6 +10,7 @@ Created on Thu Jun  4 14:30:43 2020
 import numpy as np 
 import matplotlib.pyplot as plt 
 import sys
+import cv2
 
 
 sys.dont_write_bytecode = True
@@ -41,54 +42,55 @@ def FindCorrespondence(a,b,path):
               current_row.append(float(j))
           final_list.append(np.transpose(current_row))
     rgb_list = []
-    x_list = []
-    y_list = []
-    binary_list = []
+    image1_points = []
+    image2_points = []
     
     for i in range(0, len(final_list)):
         rgb_row = []
-        x_row = []
-        y_row = []
+        P_1 = []
+        P_2 = []
         current_row = final_list[i]
         current_row = current_row[1:len(current_row)]
         
         res = np.where(current_row == b)
         
-        x_row.append(current_row[3])
-        y_row.append(current_row[4])
+        P_1.append((current_row[3],current_row[4]))
         rgb_row.append(current_row[0])
         rgb_row.append(current_row[1])
         rgb_row.append(current_row[2])
         
         if (len(res[0]) != 0):
             index = res[0][0]
-            x_row.append(current_row[index + 1])
-            y_row.append(current_row[index + 2])
+            P_2.append((current_row[index + 1],current_row[index + 2]))
             
         else:
-            x_row.append(0)
-            y_row.append(0)
+            P_1.remove((current_row[3],current_row[4]))
+            
         
-        if (len(x_row) != 0):
-            x_list.append(np.transpose(x_row))
-            y_list.append(np.transpose(y_row))
+        if (len(P_1) != 0):
+            image1_points.append((P_1))
+            image2_points.append((P_2))
             rgb_list.append(np.transpose(rgb_row))
         
-    
-    
+    image1_points = np.array(image1_points).reshape(-1,2)
+    image2_points = np.array(image2_points).reshape(-1,2)
                     
-    return np.array(x_list), np.array(y_list), np.array(rgb_list)
+    return image1_points,image2_points,rgb_list
 
 
 
 
 
 
+K =  np.array([[568.996140852, 0, 643.21055941], 
+    [0, 568.988362396, 477.982801038],
+    [0,0,1]])
     
 path = ("/home/oshi/SLAM/Structure_from_motion/text/")
-a=FindCorrespondence(1,2,path)
-print(a)
+a,b,c=FindCorrespondence(1,2,path)
 
+E, mask_E = cv2.findEssentialMat(a, b, K, method=cv2.RANSAC, prob=0.999, threshold=0.2)
+print(E)
 
 
 

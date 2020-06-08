@@ -11,11 +11,12 @@ import numpy as np
 import matplotlib.pyplot as plt 
 import sys
 import cv2
+import pptk
 
 
 sys.dont_write_bytecode = True
 
-
+np.set_printoptions(threshold = np.inf, linewidth = 1000 ,precision=3, suppress=True)
 
 def FindCorrespondence(a,b,path):
 
@@ -86,14 +87,48 @@ K =  np.array([[568.996140852, 0, 643.21055941],
     [0, 568.988362396, 477.982801038],
     [0,0,1]])
     
-path = ("/home/oshi/SLAM/Structure_from_motion/text/")
-a,b,c=FindCorrespondence(1,2,path)
+path = ("text/")
+pts1,pts2,c=FindCorrespondence(1,2,path)
 
-E, mask_E = cv2.findEssentialMat(a, b, K, method=cv2.RANSAC, prob=0.999, threshold=0.2)
-print(E)
-
-
+E, mask_E = cv2.findEssentialMat(pts1, pts2, K, method=cv2.RANSAC, prob=0.999, threshold=0.2)
+print("Essential Matrix: \n",E)
 
 
+_, R, t, mask, X = cv2.recoverPose(E, pts1, pts2, K, distanceThresh = 100)
 
-    
+print("Rotation Matrix: \n",R)
+print("Translation Vector: \n",t)    
+
+# normalization
+X = (X/X[3,:]).T
+
+# getting color values using the mask
+
+color = []
+visPts = []
+for i in range(len(mask)):
+    if mask[i] == 255:
+        color.append(c[i])
+        visPts.append(X[i])
+
+color = np.array(color)/255
+visPts = np.array(visPts)
+
+points = pptk.points(visPts[:,:3])
+
+v = pptk.viewer(points)
+v.attributes(pptk.points(color))
+v.set(show_grid=False)
+v.set(point_size = 0.2)
+
+
+#img1 = cv2.imread("Data/1.jpg")
+#img2 = cv2.imread("Data/2.jpg")
+#cv2.imshow("Img1", img1)
+#cv2.imshow("Img2", img2)
+
+# Non- linear triangulation
+I = np.eye(3)
+P1 = K @ I @ np.hstack((I,np.zeros((3,1))))
+P2 = K @ R @ np.hstack((I,t))
+
